@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 
 function AdminPage({ currentUser }) {
-  const apiBase = `http://${window.location.hostname || "localhost"}:8000/api`;
+  const envApiBase = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+  const defaultDevApiBase = `http://${window.location.hostname || "localhost"}:8000/api`;
+  const defaultProdApiBase = `${window.location.origin.replace(/\/$/, "")}/api`;
+  const apiBase = envApiBase || (import.meta.env.PROD ? defaultProdApiBase : defaultDevApiBase);
   const [loading, setLoading] = useState(true);
   const [dashboard, setDashboard] = useState({
     users: [],
