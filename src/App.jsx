@@ -510,8 +510,6 @@ function App() {
 
       <main className={`app-shell page-wrap ${currentPage === "home" ? "home-page-wrap" : ""} ${currentPage === "admin" ? "admin-page-wrap" : ""}`}>
         {configWarning ? <div className="status warning">{configWarning}</div> : null}
-        {status.message ? <div className={`status ${status.type}`}>{status.message}</div> : null}
-
         {currentPage === "home" ? (
           <section className="panel hero home-hero-fullscreen">
             <div className="home-hero-grid">
@@ -569,10 +567,12 @@ function App() {
             </div>
             <textarea value={text} onChange={(e) => setText(e.target.value)} placeholder="Type a word like 'house' or 'nok'" />
             <button className="translate-btn" onClick={handleTranslate} disabled={!canTranslate}>Translate</button>
-            {translatedText ? (
+            {translatedText || status.message ? (
               <div className="result">
                 <h3>Translation</h3>
-                <p>{translatedText}</p>
+                <p className={status.message ? `status ${status.type}` : ""}>
+                  {translatedText || status.message}
+                </p>
               </div>
             ) : null}
           </section>
