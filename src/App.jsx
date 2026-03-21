@@ -502,7 +502,9 @@ function App() {
           <button className={currentPage === "translator" ? "active" : ""} onClick={() => navigateTo("translator")}>Translator</button>
           <button className={isLearningSection ? "active" : ""} onClick={() => navigateTo("learning")}>Learning</button>
           <button className={currentPage === "g2" ? "active" : ""} onClick={() => navigateTo("g2")}>G2</button>
-          <button className={currentPage === "admin" ? "active" : ""} onClick={() => navigateTo("admin")}>Admin</button>
+          {currentUser.isAdmin ? (
+            <button className={currentPage === "admin" ? "active" : ""} onClick={() => navigateTo("admin")}>Admin</button>
+          ) : null}
         </nav>
       </aside>
 
