@@ -7,6 +7,7 @@ const SECTION_CONFIG = {
     title: "Users",
     shortTitle: "Users",
     description: "Review accounts, update usernames or emails, and control active access.",
+    importExportNote: "Import users with username, email, password, is_active, and is_admin columns.",
     columns: ["ID", "Username", "Email", "Status", "Admin Access", "Actions"],
     allowCreate: false,
     fields: [
@@ -20,6 +21,7 @@ const SECTION_CONFIG = {
     title: "Dictionary",
     shortTitle: "Dictionary",
     description: "Manage English to Garo word pairs used by the translator.",
+    importExportNote: "Import uses english_word and garo_word columns, with optional notes and is_active.",
     columns: ["ID", "English", "Garo", "Notes", "Status", "Actions"],
     allowCreate: true,
     empty: { english_word: "", garo_word: "", notes: "", is_active: true },
@@ -34,6 +36,7 @@ const SECTION_CONFIG = {
     title: "Learning",
     shortTitle: "Learning",
     description: "Edit the topics and summaries shown in the learning section.",
+    importExportNote: "Import lessons with title, topic, explanation, sort_order, and is_active columns.",
     columns: ["ID", "Title", "Topic", "Explanation", "Order", "Status", "Actions"],
     allowCreate: true,
     empty: { title: "", topic: "", explanation: "", sort_order: 0, is_active: true },
@@ -49,6 +52,7 @@ const SECTION_CONFIG = {
     title: "G2 Knowledge",
     shortTitle: "Chatbot",
     description: "Update the question and answer pairs used by G2.",
+    importExportNote: "Import G2 data with question, answer, and optional is_active columns.",
     columns: ["ID", "Question", "Answer", "Status", "Actions"],
     allowCreate: true,
     empty: { question: "", answer: "", is_active: true },
@@ -71,7 +75,7 @@ function AdminPage({ currentUser }) {
   const apiBase = envApiBase || (import.meta.env.PROD ? defaultProdApiBase : defaultDevApiBase);
   const [loading, setLoading] = useState(true);
   const [busySection, setBusySection] = useState("");
-  const [dictionaryTransferBusy, setDictionaryTransferBusy] = useState("");
+  const [transferBusySection, setTransferBusySection] = useState("");
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [activeSection, setActiveSection] = useState("");
   const [dashboard, setDashboard] = useState({
@@ -114,16 +118,19 @@ function AdminPage({ currentUser }) {
     return { response, data };
   };
 
-  const syncDictionaryDashboard = (items) => {
+  const syncSectionDashboard = (section, items) => {
     setDashboard((prev) => ({
       ...prev,
-      dictionary: items,
+      [section]: items,
       stats: {
         ...prev.stats,
-        total_dictionary_words: items.length
+        total_users: section === "users" ? items.length : prev.stats.total_users,
+        total_dictionary_words: section === "dictionary" ? items.length : prev.stats.total_dictionary_words,
+        total_learning_topics: section === "lessons" ? items.length : prev.stats.total_learning_topics,
+        total_chatbot_questions: section === "g2" ? items.length : prev.stats.total_chatbot_questions
       }
     }));
-    setSectionPages((prev) => ({ ...prev, dictionary: 1 }));
+    setSectionPages((prev) => ({ ...prev, [section]: 1 }));
   };
 
   useEffect(() => {
@@ -385,19 +392,19 @@ function AdminPage({ currentUser }) {
     setSectionPages((prev) => ({ ...prev, [section]: nextPage }));
   };
 
-  const handleDictionaryImportClick = () => {
+  const handleImportClick = () => {
     dictionaryFileInputRef.current?.click();
   };
 
-  const handleDictionaryFileChange = async (event) => {
+  const handleSectionFileChange = async (event) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !activeSection) return;
 
-    setDictionaryTransferBusy("import");
+    setTransferBusySection(activeSection);
     setFeedback({ type: "", message: "" });
     try {
       const csv = await file.text();
-      const { response, data } = await fetchJson(`${apiBase}/admin/dictionary/import/`, {
+      const { response, data } = await fetchJson(`${apiBase}/admin/${activeSection}/import/`, {
         method: "POST",
         body: JSON.stringify({ csv })
       });
@@ -407,24 +414,25 @@ function AdminPage({ currentUser }) {
         return;
       }
 
-      syncDictionaryDashboard(data.items || []);
+      syncSectionDashboard(activeSection, data.items || []);
       setFeedback({
         type: "success",
-        message: `Dictionary imported. Added ${data.inserted} rows and skipped ${data.skipped}.`
+        message: `${SECTION_CONFIG[activeSection].title} import finished. Added ${data.inserted} rows and skipped ${data.skipped}.`
       });
     } catch {
-      setFeedback({ type: "error", message: "Could not import dictionary CSV." });
+      setFeedback({ type: "error", message: "Could not import CSV." });
     } finally {
       event.target.value = "";
-      setDictionaryTransferBusy("");
+      setTransferBusySection("");
     }
   };
 
-  const handleDictionaryExport = async () => {
-    setDictionaryTransferBusy("export");
+  const handleSectionExport = async () => {
+    if (!activeSection) return;
+    setTransferBusySection(activeSection);
     setFeedback({ type: "", message: "" });
     try {
-      const response = await fetch(`${apiBase}/admin/dictionary/export/`, {
+      const response = await fetch(`${apiBase}/admin/${activeSection}/export/`, {
         credentials: "include"
       });
 
@@ -452,11 +460,11 @@ function AdminPage({ currentUser }) {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      setFeedback({ type: "success", message: "Dictionary CSV exported." });
+      setFeedback({ type: "success", message: `${SECTION_CONFIG[activeSection].title} CSV exported.` });
     } catch {
-      setFeedback({ type: "error", message: "Could not export dictionary CSV." });
+      setFeedback({ type: "error", message: "Could not export CSV." });
     } finally {
-      setDictionaryTransferBusy("");
+      setTransferBusySection("");
     }
   };
 
@@ -521,33 +529,33 @@ function AdminPage({ currentUser }) {
             </span>
           </div>
 
-          {activeSection === "dictionary" ? (
+          {SECTION_CONFIG[activeSection].importExportNote ? (
             <div className="admin-tools-bar">
               <input
                 ref={dictionaryFileInputRef}
                 className="admin-file-input"
                 type="file"
                 accept=".csv,text/csv"
-                onChange={handleDictionaryFileChange}
+                onChange={handleSectionFileChange}
               />
               <button
                 className="card-link"
                 type="button"
-                disabled={dictionaryTransferBusy !== ""}
-                onClick={handleDictionaryImportClick}
+                disabled={transferBusySection === activeSection}
+                onClick={handleImportClick}
               >
-                {dictionaryTransferBusy === "import" ? "Importing..." : "Import CSV"}
+                {transferBusySection === activeSection ? "Working..." : "Import CSV"}
               </button>
               <button
                 className="admin-secondary-btn"
                 type="button"
-                disabled={dictionaryTransferBusy !== ""}
-                onClick={handleDictionaryExport}
+                disabled={transferBusySection === activeSection}
+                onClick={handleSectionExport}
               >
-                {dictionaryTransferBusy === "export" ? "Exporting..." : "Export CSV"}
+                {transferBusySection === activeSection ? "Working..." : "Export CSV"}
               </button>
               <p className="admin-tools-note">
-                Import uses `english_word` and `garo_word` columns and skips duplicate pairs automatically.
+                {SECTION_CONFIG[activeSection].importExportNote}
               </p>
             </div>
           ) : null}
