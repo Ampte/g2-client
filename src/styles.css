@@ -725,6 +725,14 @@ textarea {
   overflow-x: hidden;
 }
 
+.admin-manager-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+
 .admin-card-header {
   display: flex;
   justify-content: space-between;
@@ -805,6 +813,60 @@ textarea {
   border: 1px solid var(--line);
   background: #ffffff;
   color: var(--brand-strong);
+}
+
+.admin-danger-btn {
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  border: 1px solid #b94949;
+  background: #d66161;
+  color: #ffffff;
+}
+
+.admin-danger-btn:hover {
+  background: #bf4e4e;
+}
+
+.admin-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 44px;
+  color: var(--ink);
+}
+
+.admin-checkbox input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.admin-table-input {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.88rem;
+}
+
+.admin-table-textarea {
+  min-height: 88px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.admin-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-table-btn {
+  margin-top: 0;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.84rem;
 }
 
 @keyframes rise-in {
@@ -995,6 +1057,11 @@ textarea {
     align-items: stretch;
   }
 
+  .admin-manager-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .admin-nav-grid {
     grid-template-columns: 1fr;
   }
@@ -1014,6 +1081,11 @@ textarea {
   .admin-table td,
   .admin-table th {
     min-width: 120px;
+  }
+
+  .admin-table td:last-child,
+  .admin-table th:last-child {
+    min-width: 170px;
   }
 
   .admin-summary-pill {
