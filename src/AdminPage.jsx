@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+const PAGE_SIZE = 20;
+
 const SECTION_CONFIG = {
   users: {
     title: "Users",
@@ -86,6 +88,12 @@ function AdminPage({ currentUser }) {
     }
   });
   const [editingRows, setEditingRows] = useState({});
+  const [sectionPages, setSectionPages] = useState({
+    users: 1,
+    dictionary: 1,
+    lessons: 1,
+    g2: 1
+  });
   const [createForms, setCreateForms] = useState({
     dictionary: clone(SECTION_CONFIG.dictionary.empty),
     lessons: clone(SECTION_CONFIG.lessons.empty),
@@ -115,6 +123,7 @@ function AdminPage({ currentUser }) {
         total_dictionary_words: items.length
       }
     }));
+    setSectionPages((prev) => ({ ...prev, dictionary: 1 }));
   };
 
   useEffect(() => {
@@ -236,20 +245,30 @@ function AdminPage({ currentUser }) {
         return;
       }
 
-      setDashboard((prev) => ({
-        ...prev,
-        [section]: prev[section].filter((item) => item.id !== id),
-        stats: {
-          ...prev.stats,
-          total_users: section === "users" ? prev.stats.total_users - 1 : prev.stats.total_users,
-          total_dictionary_words:
-            section === "dictionary" ? prev.stats.total_dictionary_words - 1 : prev.stats.total_dictionary_words,
-          total_learning_topics:
-            section === "lessons" ? prev.stats.total_learning_topics - 1 : prev.stats.total_learning_topics,
-          total_chatbot_questions:
-            section === "g2" ? prev.stats.total_chatbot_questions - 1 : prev.stats.total_chatbot_questions
-        }
-      }));
+      setDashboard((prev) => {
+        const nextItems = prev[section].filter((item) => item.id !== id);
+        return {
+          ...prev,
+          [section]: nextItems,
+          stats: {
+            ...prev.stats,
+            total_users: section === "users" ? prev.stats.total_users - 1 : prev.stats.total_users,
+            total_dictionary_words:
+              section === "dictionary" ? prev.stats.total_dictionary_words - 1 : prev.stats.total_dictionary_words,
+            total_learning_topics:
+              section === "lessons" ? prev.stats.total_learning_topics - 1 : prev.stats.total_learning_topics,
+            total_chatbot_questions:
+              section === "g2" ? prev.stats.total_chatbot_questions - 1 : prev.stats.total_chatbot_questions
+          }
+        };
+      });
+      setSectionPages((prev) => {
+        const nextTotalPages = Math.max(1, Math.ceil((sectionDataMap[section].length - 1) / PAGE_SIZE));
+        return {
+          ...prev,
+          [section]: Math.min(prev[section] || 1, nextTotalPages)
+        };
+      });
       cancelEditing(section, id);
       setFeedback({ type: "success", message: `${SECTION_CONFIG[section].title} item deleted.` });
     } catch {
@@ -298,6 +317,7 @@ function AdminPage({ currentUser }) {
             section === "g2" ? prev.stats.total_chatbot_questions + 1 : prev.stats.total_chatbot_questions
         }
       }));
+      setSectionPages((prev) => ({ ...prev, [section]: 1 }));
       setCreateForms((prev) => ({
         ...prev,
         [section]: clone(SECTION_CONFIG[section].empty)
@@ -359,6 +379,10 @@ function AdminPage({ currentUser }) {
         }
       />
     );
+  };
+
+  const changeSectionPage = (section, nextPage) => {
+    setSectionPages((prev) => ({ ...prev, [section]: nextPage }));
   };
 
   const handleDictionaryImportClick = () => {
@@ -471,6 +495,15 @@ function AdminPage({ currentUser }) {
 
       {!loading && activeSection ? (
         <section className="admin-manager-page">
+          {(() => {
+            const allItems = sectionDataMap[activeSection];
+            const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+            const currentPage = Math.min(sectionPages[activeSection] || 1, totalPages);
+            const pageStart = (currentPage - 1) * PAGE_SIZE;
+            const pageItems = allItems.slice(pageStart, pageStart + PAGE_SIZE);
+
+            return (
+              <>
           <div className="admin-manager-topbar">
             <button className="admin-secondary-btn" onClick={() => setActiveSection("")}>
               Back to Dashboard
@@ -483,7 +516,9 @@ function AdminPage({ currentUser }) {
               <h3>{SECTION_CONFIG[activeSection].title}</h3>
               <p>{SECTION_CONFIG[activeSection].description}</p>
             </div>
-            <span className="admin-count">{sectionDataMap[activeSection].length} items</span>
+            <span className="admin-count">
+              {allItems.length} items · Page {currentPage} of {totalPages}
+            </span>
           </div>
 
           {activeSection === "dictionary" ? (
@@ -590,7 +625,7 @@ function AdminPage({ currentUser }) {
                 </tr>
               </thead>
               <tbody>
-                {sectionDataMap[activeSection].map((record) => {
+                {pageItems.map((record) => {
                   const editingRecord = editingRows[activeSection]?.[record.id];
                   const currentRecord = editingRecord || record;
                   return (
@@ -648,6 +683,32 @@ function AdminPage({ currentUser }) {
               </tbody>
             </table>
           </div>
+
+          <div className="admin-pagination">
+            <button
+              className="admin-secondary-btn"
+              type="button"
+              disabled={currentPage <= 1}
+              onClick={() => changeSectionPage(activeSection, currentPage - 1)}
+            >
+              Previous
+            </button>
+            <span className="admin-pagination-info">
+              Showing {pageItems.length === 0 ? 0 : pageStart + 1}-
+              {pageStart + pageItems.length} of {allItems.length}
+            </span>
+            <button
+              className="card-link admin-table-btn"
+              type="button"
+              disabled={currentPage >= totalPages}
+              onClick={() => changeSectionPage(activeSection, currentPage + 1)}
+            >
+              Next
+            </button>
+          </div>
+              </>
+            );
+          })()}
         </section>
       ) : null}
     </section>
