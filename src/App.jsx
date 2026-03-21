@@ -197,7 +197,7 @@ function App() {
     if (homeAds.length <= 1) return undefined;
     const timer = window.setInterval(() => {
       setActiveHomeAdIndex((prev) => (prev + 1) % homeAds.length);
-    }, 10000);
+    }, 15000);
     return () => window.clearInterval(timer);
   }, [homeAds]);
 

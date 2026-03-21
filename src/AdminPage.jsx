@@ -36,7 +36,7 @@ const SECTION_CONFIG = {
     title: "Learning",
     shortTitle: "Learning",
     description: "Edit the topics and summaries shown in the learning section.",
-    importExportNote: "Import lessons with title, topic, explanation, sort_order, and is_active columns.",
+    importExportNote: "Import and export learning data with only title, topic, and explanation columns.",
     columns: ["ID", "Title", "Topic", "Explanation", "Order", "Status", "Actions"],
     allowCreate: true,
     empty: { title: "", topic: "", explanation: "", sort_order: 0, is_active: true },
