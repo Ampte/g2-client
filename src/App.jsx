@@ -12,7 +12,7 @@ const PRODUCTION_CONFIG_WARNING = import.meta.env.PROD && !ENV_API_BASE
 const DEFAULT_HOME_ADS = [
   {
     image_url: "/nokpante.jpg",
-    description: "Nokpante, a traditional house of Garo Boys."
+    description: "Nokachik, a traditional house of Garos."
   }
 ];
 
