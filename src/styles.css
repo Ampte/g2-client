@@ -733,6 +733,32 @@ textarea {
   margin-bottom: 1rem;
 }
 
+.admin-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.admin-field {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-field span {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-field textarea {
+  min-height: 92px;
+  margin: 0;
+}
+
 .admin-card-header {
   display: flex;
   justify-content: space-between;
@@ -826,6 +852,11 @@ textarea {
 
 .admin-danger-btn:hover {
   background: #bf4e4e;
+}
+
+.admin-empty {
+  margin: 0 0 1rem;
+  color: var(--muted);
 }
 
 .admin-checkbox {
@@ -1063,6 +1094,10 @@ textarea {
   }
 
   .admin-nav-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-create-form {
     grid-template-columns: 1fr;
   }
 }

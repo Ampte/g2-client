@@ -6,7 +6,7 @@ const SECTION_CONFIG = {
     shortTitle: "Users",
     description: "Review accounts, update usernames or emails, and control active access.",
     columns: ["ID", "Username", "Email", "Status", "Admin Access", "Actions"],
-    countKey: "total_users",
+    allowCreate: false,
     fields: [
       { key: "username", label: "Username", type: "text" },
       { key: "email", label: "Email", type: "text" },
@@ -19,7 +19,8 @@ const SECTION_CONFIG = {
     shortTitle: "Dictionary",
     description: "Manage English to Garo word pairs used by the translator.",
     columns: ["ID", "English", "Garo", "Notes", "Status", "Actions"],
-    countKey: "total_dictionary_words",
+    allowCreate: true,
+    empty: { english_word: "", garo_word: "", notes: "", is_active: true },
     fields: [
       { key: "english_word", label: "English", type: "text" },
       { key: "garo_word", label: "Garo", type: "text" },
@@ -32,24 +33,12 @@ const SECTION_CONFIG = {
     shortTitle: "Learning",
     description: "Edit the topics and summaries shown in the learning section.",
     columns: ["ID", "Title", "Topic", "Explanation", "Order", "Status", "Actions"],
-    countKey: "total_learning_topics",
+    allowCreate: true,
+    empty: { title: "", topic: "", explanation: "", sort_order: 0, is_active: true },
     fields: [
       { key: "title", label: "Title", type: "text" },
       { key: "topic", label: "Topic", type: "text" },
       { key: "explanation", label: "Explanation", type: "textarea" },
-      { key: "sort_order", label: "Order", type: "number" },
-      { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" }
-    ]
-  },
-  "home-ads": {
-    title: "Home Ads",
-    shortTitle: "Home Ads",
-    description: "Manage rotating homepage images and captions.",
-    columns: ["ID", "Image URL", "Description", "Order", "Status", "Actions"],
-    countKey: "ads",
-    fields: [
-      { key: "image_url", label: "Image URL", type: "text" },
-      { key: "description", label: "Description", type: "textarea" },
       { key: "sort_order", label: "Order", type: "number" },
       { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" }
     ]
@@ -59,7 +48,8 @@ const SECTION_CONFIG = {
     shortTitle: "Chatbot",
     description: "Update the question and answer pairs used by G2.",
     columns: ["ID", "Question", "Answer", "Status", "Actions"],
-    countKey: "total_chatbot_questions",
+    allowCreate: true,
+    empty: { question: "", answer: "", is_active: true },
     fields: [
       { key: "question", label: "Question", type: "textarea" },
       { key: "answer", label: "Answer", type: "textarea" },
@@ -95,6 +85,11 @@ function AdminPage({ currentUser }) {
     }
   });
   const [editingRows, setEditingRows] = useState({});
+  const [createForms, setCreateForms] = useState({
+    dictionary: clone(SECTION_CONFIG.dictionary.empty),
+    lessons: clone(SECTION_CONFIG.lessons.empty),
+    g2: clone(SECTION_CONFIG.g2.empty)
+  });
 
   const fetchJson = async (url, options = {}) => {
     const response = await fetch(url, {
@@ -146,7 +141,6 @@ function AdminPage({ currentUser }) {
     users: dashboard.users,
     dictionary: dashboard.dictionary,
     lessons: dashboard.lessons,
-    "home-ads": dashboard.ads,
     g2: dashboard.g2
   };
 
@@ -154,7 +148,6 @@ function AdminPage({ currentUser }) {
     users: dashboard.stats.total_users,
     dictionary: dashboard.stats.total_dictionary_words,
     lessons: dashboard.stats.total_learning_topics,
-    "home-ads": dashboard.ads.length,
     g2: dashboard.stats.total_chatbot_questions
   };
 
@@ -205,10 +198,9 @@ function AdminPage({ currentUser }) {
         return;
       }
 
-      const dashboardKey = section === "home-ads" ? "ads" : section;
       setDashboard((prev) => ({
         ...prev,
-        [dashboardKey]: prev[dashboardKey].map((item) => (item.id === id ? data.item : item))
+        [section]: prev[section].map((item) => (item.id === id ? data.item : item))
       }));
       cancelEditing(section, id);
       setFeedback({ type: "success", message: `${SECTION_CONFIG[section].title} item updated.` });
@@ -231,10 +223,9 @@ function AdminPage({ currentUser }) {
         return;
       }
 
-      const dashboardKey = section === "home-ads" ? "ads" : section;
       setDashboard((prev) => ({
         ...prev,
-        [dashboardKey]: prev[dashboardKey].filter((item) => item.id !== id),
+        [section]: prev[section].filter((item) => item.id !== id),
         stats: {
           ...prev.stats,
           total_users: section === "users" ? prev.stats.total_users - 1 : prev.stats.total_users,
@@ -250,6 +241,57 @@ function AdminPage({ currentUser }) {
       setFeedback({ type: "success", message: `${SECTION_CONFIG[section].title} item deleted.` });
     } catch {
       setFeedback({ type: "error", message: "Could not delete item." });
+    } finally {
+      setBusySection("");
+    }
+  };
+
+  const updateCreateField = (section, key, value) => {
+    setCreateForms((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [key]: value
+      }
+    }));
+  };
+
+  const createRecord = async (section) => {
+    const form = createForms[section];
+    if (!form) return;
+
+    setBusySection(section);
+    setFeedback({ type: "", message: "" });
+    try {
+      const { response, data } = await fetchJson(`${apiBase}/admin/${section}/`, {
+        method: "POST",
+        body: JSON.stringify(form)
+      });
+      if (!response.ok) {
+        setFeedback({ type: "error", message: data.error || "Could not create item." });
+        return;
+      }
+
+      setDashboard((prev) => ({
+        ...prev,
+        [section]: [data.item, ...prev[section]],
+        stats: {
+          ...prev.stats,
+          total_dictionary_words:
+            section === "dictionary" ? prev.stats.total_dictionary_words + 1 : prev.stats.total_dictionary_words,
+          total_learning_topics:
+            section === "lessons" ? prev.stats.total_learning_topics + 1 : prev.stats.total_learning_topics,
+          total_chatbot_questions:
+            section === "g2" ? prev.stats.total_chatbot_questions + 1 : prev.stats.total_chatbot_questions
+        }
+      }));
+      setCreateForms((prev) => ({
+        ...prev,
+        [section]: clone(SECTION_CONFIG[section].empty)
+      }));
+      setFeedback({ type: "success", message: `${SECTION_CONFIG[section].title} item created.` });
+    } catch {
+      setFeedback({ type: "error", message: "Could not create item." });
     } finally {
       setBusySection("");
     }
@@ -355,6 +397,69 @@ function AdminPage({ currentUser }) {
             </div>
             <span className="admin-count">{sectionDataMap[activeSection].length} items</span>
           </div>
+
+          {SECTION_CONFIG[activeSection].allowCreate ? (
+            <div className="admin-create-form">
+              {SECTION_CONFIG[activeSection].fields.map((field) => {
+                const value = createForms[activeSection][field.key];
+
+                if (field.type === "checkbox") {
+                  return (
+                    <label key={field.key} className="admin-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(value)}
+                        onChange={(event) => updateCreateField(activeSection, field.key, event.target.checked)}
+                      />
+                      <span>{field.label}</span>
+                    </label>
+                  );
+                }
+
+                if (field.type === "textarea") {
+                  return (
+                    <label key={field.key} className="admin-field admin-field-wide">
+                      <span>{field.label}</span>
+                      <textarea
+                        value={String(value ?? "")}
+                        onChange={(event) => updateCreateField(activeSection, field.key, event.target.value)}
+                      />
+                    </label>
+                  );
+                }
+
+                return (
+                  <label key={field.key} className="admin-field">
+                    <span>{field.label}</span>
+                    <input
+                      type={field.type}
+                      value={String(value ?? "")}
+                      onChange={(event) =>
+                        updateCreateField(
+                          activeSection,
+                          field.key,
+                          field.type === "number"
+                            ? Number.parseInt(event.target.value || "0", 10) || 0
+                            : event.target.value
+                        )
+                      }
+                    />
+                  </label>
+                );
+              })}
+
+              <button
+                className="card-link"
+                type="button"
+                disabled={busySection === activeSection}
+                onClick={() => createRecord(activeSection)}
+              >
+                Add New
+              </button>
+            </div>
+          ) : (
+            <p className="admin-empty">Create new users from the app sign-up flow.</p>
+          )}
 
           <div className="admin-table-wrap">
             <table className="admin-table">

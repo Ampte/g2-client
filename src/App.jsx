@@ -211,6 +211,8 @@ function App() {
 
   const handleTranslate = async () => {
     if (!canTranslate) return;
+    setTranslatedText("");
+    setStatus({ type: "", message: "" });
 
     try {
       const res = await fetch(`${API_BASE}/translate/`, {
@@ -221,15 +223,15 @@ function App() {
       });
       const data = await res.json();
       if (!res.ok) {
+        setTranslatedText("");
         setStatus({ type: "error", message: data.error || "Translation failed." });
         return;
       }
       setTranslatedText(data.translated_text || "");
       setStatus({ type: "", message: "" });
     } catch {
-      const fallback = source === "en" && target === "garo" ? `A'chik: ${text}` : `English: ${text}`;
-      setTranslatedText(fallback);
-      setStatus({ type: "warning", message: "Backend unreachable. Showing a local preview translation." });
+      setTranslatedText("");
+      setStatus({ type: "error", message: "Backend unreachable. Start the backend server." });
     }
   };
 
