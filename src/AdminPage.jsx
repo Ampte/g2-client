@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const SECTION_CONFIG = {
   users: {
@@ -69,6 +69,7 @@ function AdminPage({ currentUser }) {
   const apiBase = envApiBase || (import.meta.env.PROD ? defaultProdApiBase : defaultDevApiBase);
   const [loading, setLoading] = useState(true);
   const [busySection, setBusySection] = useState("");
+  const [dictionaryTransferBusy, setDictionaryTransferBusy] = useState("");
   const [feedback, setFeedback] = useState({ type: "", message: "" });
   const [activeSection, setActiveSection] = useState("");
   const [dashboard, setDashboard] = useState({
@@ -90,6 +91,7 @@ function AdminPage({ currentUser }) {
     lessons: clone(SECTION_CONFIG.lessons.empty),
     g2: clone(SECTION_CONFIG.g2.empty)
   });
+  const dictionaryFileInputRef = useRef(null);
 
   const fetchJson = async (url, options = {}) => {
     const response = await fetch(url, {
@@ -102,6 +104,17 @@ function AdminPage({ currentUser }) {
     });
     const data = await response.json();
     return { response, data };
+  };
+
+  const syncDictionaryDashboard = (items) => {
+    setDashboard((prev) => ({
+      ...prev,
+      dictionary: items,
+      stats: {
+        ...prev.stats,
+        total_dictionary_words: items.length
+      }
+    }));
   };
 
   useEffect(() => {
@@ -348,6 +361,81 @@ function AdminPage({ currentUser }) {
     );
   };
 
+  const handleDictionaryImportClick = () => {
+    dictionaryFileInputRef.current?.click();
+  };
+
+  const handleDictionaryFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setDictionaryTransferBusy("import");
+    setFeedback({ type: "", message: "" });
+    try {
+      const csv = await file.text();
+      const { response, data } = await fetchJson(`${apiBase}/admin/dictionary/import/`, {
+        method: "POST",
+        body: JSON.stringify({ csv })
+      });
+
+      if (!response.ok) {
+        setFeedback({ type: "error", message: data.error || "Could not import dictionary CSV." });
+        return;
+      }
+
+      syncDictionaryDashboard(data.items || []);
+      setFeedback({
+        type: "success",
+        message: `Dictionary imported. Added ${data.inserted} rows and skipped ${data.skipped}.`
+      });
+    } catch {
+      setFeedback({ type: "error", message: "Could not import dictionary CSV." });
+    } finally {
+      event.target.value = "";
+      setDictionaryTransferBusy("");
+    }
+  };
+
+  const handleDictionaryExport = async () => {
+    setDictionaryTransferBusy("export");
+    setFeedback({ type: "", message: "" });
+    try {
+      const response = await fetch(`${apiBase}/admin/dictionary/export/`, {
+        credentials: "include"
+      });
+
+      if (!response.ok) {
+        let message = "Could not export dictionary CSV.";
+        try {
+          const data = await response.json();
+          message = data.error || message;
+        } catch {
+          // Keep fallback message for non-JSON responses.
+        }
+        setFeedback({ type: "error", message });
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const contentDisposition = response.headers.get("Content-Disposition") || "";
+      const matchedName = contentDisposition.match(/filename="?([^"]+)"?/i);
+      const fileName = matchedName?.[1] || "dictionary-export.csv";
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setFeedback({ type: "success", message: "Dictionary CSV exported." });
+    } catch {
+      setFeedback({ type: "error", message: "Could not export dictionary CSV." });
+    } finally {
+      setDictionaryTransferBusy("");
+    }
+  };
+
   return (
     <section className="panel admin-panel">
       {feedback.message ? <div className={`status ${feedback.type}`}>{feedback.message}</div> : null}
@@ -397,6 +485,37 @@ function AdminPage({ currentUser }) {
             </div>
             <span className="admin-count">{sectionDataMap[activeSection].length} items</span>
           </div>
+
+          {activeSection === "dictionary" ? (
+            <div className="admin-tools-bar">
+              <input
+                ref={dictionaryFileInputRef}
+                className="admin-file-input"
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleDictionaryFileChange}
+              />
+              <button
+                className="card-link"
+                type="button"
+                disabled={dictionaryTransferBusy !== ""}
+                onClick={handleDictionaryImportClick}
+              >
+                {dictionaryTransferBusy === "import" ? "Importing..." : "Import CSV"}
+              </button>
+              <button
+                className="admin-secondary-btn"
+                type="button"
+                disabled={dictionaryTransferBusy !== ""}
+                onClick={handleDictionaryExport}
+              >
+                {dictionaryTransferBusy === "export" ? "Exporting..." : "Export CSV"}
+              </button>
+              <p className="admin-tools-note">
+                Import uses `english_word` and `garo_word` columns and skips duplicate pairs automatically.
+              </p>
+            </div>
+          ) : null}
 
           {SECTION_CONFIG[activeSection].allowCreate ? (
             <div className="admin-create-form">
