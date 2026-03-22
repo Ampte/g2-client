@@ -983,10 +983,6 @@ textarea {
     display: none;
   }
 
-  .nav-username-btn {
-    display: none;
-  }
-
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
@@ -1040,6 +1036,13 @@ textarea {
     position: static;
     margin-top: 0.55rem;
     box-shadow: none;
+  }
+
+  .mobile-sidebar .nav-username-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
   }
 
   .mobile-sidebar-links {
