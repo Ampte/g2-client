@@ -149,6 +149,13 @@ function AdminPage({ currentUser }) {
     g2: 1,
     feedback: 1
   });
+  const [sectionSearch, setSectionSearch] = useState({
+    users: "",
+    dictionary: "",
+    lessons: "",
+    g2: "",
+    feedback: ""
+  });
   const [createForms, setCreateForms] = useState({
     dictionary: clone(SECTION_CONFIG.dictionary.empty),
     lessons: clone(SECTION_CONFIG.lessons.empty),
@@ -454,6 +461,11 @@ function AdminPage({ currentUser }) {
     setSectionPages((prev) => ({ ...prev, [section]: nextPage }));
   };
 
+  const changeSectionSearch = (section, value) => {
+    setSectionSearch((prev) => ({ ...prev, [section]: value }));
+    setSectionPages((prev) => ({ ...prev, [section]: 1 }));
+  };
+
   const handleImportClick = () => {
     dictionaryFileInputRef.current?.click();
   };
@@ -566,13 +578,28 @@ function AdminPage({ currentUser }) {
       {!loading && activeSection ? (
         <section className="admin-manager-page">
           {(() => {
+            const searchQuery = String(sectionSearch[activeSection] || "").trim().toLowerCase();
             const allItems = [...sectionDataMap[activeSection]].sort(
               (first, second) => Number(second.id || 0) - Number(first.id || 0)
             );
-            const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+            const searchableFields = SECTION_CONFIG[activeSection].tableFields || SECTION_CONFIG[activeSection].fields;
+            const filteredItems = searchQuery
+              ? allItems.filter((item) =>
+                  searchableFields.some((field) => {
+                    const value = item[field.key];
+                    if (value === null || value === undefined) return false;
+                    if (typeof value === "boolean") {
+                      const boolLabel = value ? field.trueLabel || "true" : field.falseLabel || "false";
+                      return boolLabel.toLowerCase().includes(searchQuery);
+                    }
+                    return String(value).toLowerCase().includes(searchQuery);
+                  }) || String(item.id ?? "").includes(searchQuery)
+                )
+              : allItems;
+            const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
             const currentPage = Math.min(sectionPages[activeSection] || 1, totalPages);
             const pageStart = (currentPage - 1) * PAGE_SIZE;
-            const pageItems = allItems.slice(pageStart, pageStart + PAGE_SIZE);
+            const pageItems = filteredItems.slice(pageStart, pageStart + PAGE_SIZE);
 
             return (
               <>
@@ -589,8 +616,18 @@ function AdminPage({ currentUser }) {
               <p>{SECTION_CONFIG[activeSection].description}</p>
             </div>
             <span className="admin-count">
-              {allItems.length} items · Page {currentPage} of {totalPages}
+              {filteredItems.length} items · Page {currentPage} of {totalPages}
             </span>
+          </div>
+
+          <div className="admin-search-bar">
+            <input
+              className="admin-search-input"
+              type="search"
+              value={sectionSearch[activeSection] || ""}
+              onChange={(event) => changeSectionSearch(activeSection, event.target.value)}
+              placeholder={`Search ${SECTION_CONFIG[activeSection].shortTitle.toLowerCase()} data`}
+            />
           </div>
 
           {SECTION_CONFIG[activeSection].importExportNote ? (
@@ -757,6 +794,15 @@ function AdminPage({ currentUser }) {
                     </tr>
                   );
                 })}
+                {pageItems.length === 0 ? (
+                  <tr>
+                    <td colSpan={SECTION_CONFIG[activeSection].columns.length}>
+                      {searchQuery
+                        ? `No ${SECTION_CONFIG[activeSection].shortTitle.toLowerCase()} records match "${sectionSearch[activeSection]}".`
+                        : `No ${SECTION_CONFIG[activeSection].shortTitle.toLowerCase()} records available.`}
+                    </td>
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
@@ -772,7 +818,7 @@ function AdminPage({ currentUser }) {
             </button>
             <span className="admin-pagination-info">
               Showing {pageItems.length === 0 ? 0 : pageStart + 1}-
-              {pageStart + pageItems.length} of {allItems.length}
+              {pageStart + pageItems.length} of {filteredItems.length}
             </span>
             <button
               className="card-link admin-table-btn"
