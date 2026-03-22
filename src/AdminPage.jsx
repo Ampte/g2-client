@@ -29,7 +29,8 @@ const SECTION_CONFIG = {
     title: "Dictionary",
     shortTitle: "Dictionary",
     description: "Manage English to Garo word pairs used by the translator.",
-    importExportNote: "Import uses english_word and garo_word columns, with optional notes and is_active. Duplicate word pairs are allowed.",
+    importExportNote:
+      "Import uses english_word and garo_word columns, with optional notes and is_active. Duplicate word pairs are skipped.",
     columns: ["ID", "English", "Garo", "Notes", "Status", "Created", "Actions"],
     allowCreate: true,
     allowEdit: true,
@@ -471,7 +472,7 @@ function AdminPage({ currentUser }) {
       });
 
       if (!response.ok) {
-        setFeedback({ type: "error", message: data.error || "Could not import dictionary CSV." });
+        setFeedback({ type: "error", message: data.error || "Could not import CSV." });
         return;
       }
 
@@ -498,7 +499,7 @@ function AdminPage({ currentUser }) {
       });
 
       if (!response.ok) {
-        let message = "Could not export dictionary CSV.";
+        let message = "Could not export CSV.";
         try {
           const data = await response.json();
           message = data.error || message;
