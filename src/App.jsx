@@ -39,18 +39,18 @@ const DEFAULT_LEARNING_TOPICS = [
   }
 ];
 
-const VALID_PAGES = new Set([
+const getValidPages = (topics = DEFAULT_LEARNING_TOPICS) => new Set([
   "home",
   "translator",
   "learning",
   "g2",
   "admin",
-  ...DEFAULT_LEARNING_TOPICS.map((topic) => topic.page)
+  ...topics.map((topic) => topic.page)
 ]);
 
-const getPageFromHash = () => {
+const getPageFromHash = (validPages = getValidPages()) => {
   const hash = window.location.hash.replace("#", "").trim().toLowerCase();
-  return VALID_PAGES.has(hash) ? hash : "home";
+  return validPages.has(hash) ? hash : "home";
 };
 
 function App() {
@@ -66,7 +66,7 @@ function App() {
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(getPageFromHash);
+  const [currentPage, setCurrentPage] = useState(() => getPageFromHash(getValidPages(DEFAULT_LEARNING_TOPICS)));
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [sidebarAccountMenuOpen, setSidebarAccountMenuOpen] = useState(false);
@@ -75,6 +75,7 @@ function App() {
   const [source, setSource] = useState("en");
   const [target, setTarget] = useState("garo");
   const [translatedText, setTranslatedText] = useState("");
+  const [translatedOptions, setTranslatedOptions] = useState([]);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
@@ -111,10 +112,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const onHashChange = () => setCurrentPage(getPageFromHash());
+    const onHashChange = () => setCurrentPage(getPageFromHash(getValidPages(learningTopics)));
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [learningTopics]);
 
   useEffect(() => {
     const closeOnOutsideClick = (event) => {
@@ -158,6 +159,10 @@ function App() {
 
         if (!cancelled && topics.length > 0) {
           setLearningTopics(topics);
+          setCurrentPage((prev) => {
+            const validPages = getValidPages(topics);
+            return validPages.has(prev) ? prev : getPageFromHash(validPages);
+          });
         }
       } catch {
         // Keep local fallback topics.
@@ -212,6 +217,7 @@ function App() {
   const handleTranslate = async () => {
     if (!canTranslate) return;
     setTranslatedText("");
+    setTranslatedOptions([]);
     setStatus({ type: "", message: "" });
 
     try {
@@ -224,13 +230,16 @@ function App() {
       const data = await res.json();
       if (!res.ok) {
         setTranslatedText("");
+        setTranslatedOptions([]);
         setStatus({ type: "error", message: data.error || "Translation failed." });
         return;
       }
       setTranslatedText(data.translated_text || "");
+      setTranslatedOptions(Array.isArray(data.translations) ? data.translations : []);
       setStatus({ type: "", message: "" });
     } catch {
       setTranslatedText("");
+      setTranslatedOptions([]);
       setStatus({ type: "error", message: "Backend unreachable. Start the backend server." });
     }
   };
@@ -558,7 +567,7 @@ function App() {
                 <option value="en">English</option>
                 <option value="garo">Garo</option>
               </select>
-              <button className="swap" onClick={() => { setSource(target); setTarget(source); setTranslatedText(""); }}>Swap</button>
+              <button className="swap" onClick={() => { setSource(target); setTarget(source); setTranslatedText(""); setTranslatedOptions([]); }}>Swap</button>
               <label htmlFor="target">To</label>
               <select id="target" value={target} onChange={(e) => setTarget(e.target.value)}>
                 <option value="garo">Garo</option>
@@ -570,9 +579,17 @@ function App() {
             {translatedText || status.message ? (
               <div className="result">
                 <h3>Translation</h3>
-                <p className={status.message ? `status ${status.type}` : ""}>
-                  {translatedText || status.message}
-                </p>
+                {status.message ? (
+                  <p className={`status ${status.type}`}>{status.message}</p>
+                ) : translatedOptions.length > 1 ? (
+                  <ul className="translation-list">
+                    {translatedOptions.map((option, index) => (
+                      <li key={`${option}-${index}`}>{option}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{translatedText}</p>
+                )}
               </div>
             ) : null}
           </section>

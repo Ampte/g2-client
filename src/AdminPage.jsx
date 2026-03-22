@@ -21,7 +21,7 @@ const SECTION_CONFIG = {
     title: "Dictionary",
     shortTitle: "Dictionary",
     description: "Manage English to Garo word pairs used by the translator.",
-    importExportNote: "Import uses english_word and garo_word columns, with optional notes and is_active.",
+    importExportNote: "Import uses english_word and garo_word columns, with optional notes and is_active. Duplicate word pairs are allowed.",
     columns: ["ID", "English", "Garo", "Notes", "Status", "Actions"],
     allowCreate: true,
     empty: { english_word: "", garo_word: "", notes: "", is_active: true },
