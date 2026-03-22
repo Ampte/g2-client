@@ -591,11 +591,6 @@ function App() {
                     <p>Chat with a guided assistant for greetings, beginner prompts, and practice.</p>
                     <button className="card-link" onClick={() => navigateTo("g2")}>Open G2</button>
                   </article>
-                  <article className="home-card">
-                    <h2>Feedback</h2>
-                    <p>Share suggestions, report problems, or tell us what to improve next.</p>
-                    <button className="card-link" onClick={() => navigateTo("feedback")}>Open Feedback</button>
-                  </article>
                 </div>
               </div>
             </div>
