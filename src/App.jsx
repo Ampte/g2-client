@@ -54,6 +54,12 @@ const getPageFromHash = (validPages = getValidPages()) => {
   return validPages.has(hash) ? hash : "home";
 };
 
+const getExplanationParagraphs = (text) =>
+  String(text || "")
+    .split(/\r?\n\r?\n+/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
 function App() {
   const [authChecking, setAuthChecking] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
@@ -651,15 +657,16 @@ function App() {
         ) : null}
 
         {currentLearningPage ? (
-          <section className="panel">
-            <h2>{currentLearningPage.title}</h2>
-            <div className="learning-topic-grid">
-              <article className="learning-topic-card">
-                <h3>{currentLearningPage.title}</h3>
-                <p>{currentLearningPage.description}</p>
-              </article>
+          <section className="panel learning-detail-panel">
+            <div className="learning-detail-header">
+              <h2>{currentLearningPage.title}</h2>
+              <button className="card-link" onClick={() => navigateTo("learning")}>Back to Learning</button>
             </div>
-            <button className="card-link" onClick={() => navigateTo("learning")}>Back to Learning</button>
+            <article className="learning-detail-content">
+              {getExplanationParagraphs(currentLearningPage.description).map((paragraph, index) => (
+                <p key={`${currentLearningPage.page}-paragraph-${index}`}>{paragraph}</p>
+              ))}
+            </article>
           </section>
         ) : null}
 

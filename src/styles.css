@@ -427,6 +427,45 @@ textarea {
   line-height: 1.5;
 }
 
+.learning-detail-panel {
+  width: 100%;
+  max-width: none;
+  padding: 1.5rem;
+}
+
+.learning-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.learning-detail-header h2 {
+  margin: 0;
+  color: var(--brand-strong);
+}
+
+.learning-detail-content {
+  width: 100%;
+  min-height: calc(100vh - 320px);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 1.5rem;
+  background: #ffffff;
+}
+
+.learning-detail-content p {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.learning-detail-content p + p {
+  margin-top: 1rem;
+}
+
 .chatgpt-shell {
   min-height: calc(100vh - 128px);
 }
@@ -1110,6 +1149,11 @@ textarea {
 
   .learning-topic-grid {
     grid-template-columns: 1fr;
+  }
+
+  .learning-detail-header {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .home-cards {
