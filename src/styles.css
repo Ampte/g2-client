@@ -351,6 +351,37 @@ textarea {
   margin-top: 0.35rem;
 }
 
+.feedback-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.feedback-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.feedback-field span {
+  font-weight: 700;
+  color: var(--brand-strong);
+}
+
+.feedback-field input,
+.feedback-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+  font: inherit;
+  background: #ffffff;
+  color: var(--ink);
+}
+
+.feedback-field textarea {
+  resize: vertical;
+  min-height: 160px;
+}
+
 .status {
   margin: 0 0 1rem;
   padding: 0.7rem;

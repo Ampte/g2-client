@@ -43,6 +43,7 @@ const getValidPages = (topics = DEFAULT_LEARNING_TOPICS) => new Set([
   "home",
   "translator",
   "learning",
+  "feedback",
   "g2",
   "admin",
   ...topics.map((topic) => topic.page)
@@ -82,6 +83,9 @@ function App() {
   const [learningTopics, setLearningTopics] = useState(DEFAULT_LEARNING_TOPICS);
   const [homeAds, setHomeAds] = useState(DEFAULT_HOME_ADS);
   const [activeHomeAdIndex, setActiveHomeAdIndex] = useState(0);
+  const [feedbackForm, setFeedbackForm] = useState({ subject: "", message: "" });
+  const [feedbackState, setFeedbackState] = useState({ type: "", message: "" });
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const chatStreamRef = useRef(null);
   const accountMenuRef = useRef(null);
   const sidebarAccountMenuRef = useRef(null);
@@ -277,6 +281,40 @@ function App() {
     }
   };
 
+  const handleFeedbackSubmit = async (event) => {
+    event.preventDefault();
+    if (feedbackLoading) return;
+
+    const subject = feedbackForm.subject.trim();
+    const message = feedbackForm.message.trim();
+    if (!subject || !message) {
+      setFeedbackState({ type: "error", message: "Please enter both a subject and message." });
+      return;
+    }
+
+    setFeedbackLoading(true);
+    setFeedbackState({ type: "", message: "" });
+    try {
+      const res = await fetch(`${API_BASE}/feedback/`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject, message })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setFeedbackState({ type: "error", message: data.error || "Could not send feedback." });
+        return;
+      }
+      setFeedbackForm({ subject: "", message: "" });
+      setFeedbackState({ type: "success", message: "Feedback sent successfully." });
+    } catch {
+      setFeedbackState({ type: "error", message: "Could not connect to server." });
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
   const logout = () => {
     fetch(`${API_BASE}/auth/logout/`, {
       method: "POST",
@@ -468,6 +506,7 @@ function App() {
             <button className={currentPage === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button>
             <button className={currentPage === "translator" ? "active" : ""} onClick={() => navigateTo("translator")}>Translator</button>
             <button className={isLearningSection ? "active" : ""} onClick={() => navigateTo("learning")}>Learning</button>
+            <button className={currentPage === "feedback" ? "active" : ""} onClick={() => navigateTo("feedback")}>Feedback</button>
             <button className={currentPage === "g2" ? "active" : ""} onClick={() => navigateTo("g2")}>G2</button>
             {currentUser.isAdmin ? (
               <button className={currentPage === "admin" ? "active" : ""} onClick={() => navigateTo("admin")}>Admin</button>
@@ -510,6 +549,7 @@ function App() {
           <button className={currentPage === "home" ? "active" : ""} onClick={() => navigateTo("home")}>Home</button>
           <button className={currentPage === "translator" ? "active" : ""} onClick={() => navigateTo("translator")}>Translator</button>
           <button className={isLearningSection ? "active" : ""} onClick={() => navigateTo("learning")}>Learning</button>
+          <button className={currentPage === "feedback" ? "active" : ""} onClick={() => navigateTo("feedback")}>Feedback</button>
           <button className={currentPage === "g2" ? "active" : ""} onClick={() => navigateTo("g2")}>G2</button>
           {currentUser.isAdmin ? (
             <button className={currentPage === "admin" ? "active" : ""} onClick={() => navigateTo("admin")}>Admin</button>
@@ -550,6 +590,11 @@ function App() {
                     <h2>G2</h2>
                     <p>Chat with a guided assistant for greetings, beginner prompts, and practice.</p>
                     <button className="card-link" onClick={() => navigateTo("g2")}>Open G2</button>
+                  </article>
+                  <article className="home-card">
+                    <h2>Feedback</h2>
+                    <p>Share suggestions, report problems, or tell us what to improve next.</p>
+                    <button className="card-link" onClick={() => navigateTo("feedback")}>Open Feedback</button>
                   </article>
                 </div>
               </div>
@@ -620,6 +665,37 @@ function App() {
               </article>
             </div>
             <button className="card-link" onClick={() => navigateTo("learning")}>Back to Learning</button>
+          </section>
+        ) : null}
+
+        {currentPage === "feedback" ? (
+          <section className="panel">
+            <h2>Feedback</h2>
+            <p>Send suggestions, feature requests, or bug reports to the admin team.</p>
+            <form className="feedback-form" onSubmit={handleFeedbackSubmit}>
+              <label className="feedback-field">
+                <span>Subject</span>
+                <input
+                  type="text"
+                  value={feedbackForm.subject}
+                  onChange={(event) => setFeedbackForm((prev) => ({ ...prev, subject: event.target.value }))}
+                  placeholder="What would you like to share?"
+                />
+              </label>
+              <label className="feedback-field">
+                <span>Message</span>
+                <textarea
+                  value={feedbackForm.message}
+                  onChange={(event) => setFeedbackForm((prev) => ({ ...prev, message: event.target.value }))}
+                  placeholder="Describe the issue, suggestion, or idea."
+                  rows={6}
+                />
+              </label>
+              {feedbackState.message ? <div className={`status ${feedbackState.type}`}>{feedbackState.message}</div> : null}
+              <button className="translate-btn" type="submit" disabled={feedbackLoading}>
+                {feedbackLoading ? "Sending..." : "Send Feedback"}
+              </button>
+            </form>
           </section>
         ) : null}
 

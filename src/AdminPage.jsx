@@ -8,13 +8,21 @@ const SECTION_CONFIG = {
     shortTitle: "Users",
     description: "Review accounts, update usernames or emails, and control active access.",
     importExportNote: "Import users with username, email, password, is_active, and is_admin columns.",
-    columns: ["ID", "Username", "Email", "Status", "Admin Access", "Actions"],
+    columns: ["ID", "Username", "Email", "Status", "Admin Access", "Created", "Actions"],
     allowCreate: false,
+    allowEdit: true,
     fields: [
       { key: "username", label: "Username", type: "text" },
       { key: "email", label: "Email", type: "text" },
       { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" },
       { key: "is_admin", label: "Admin Access", type: "checkbox", trueLabel: "Admin", falseLabel: "Standard" }
+    ],
+    tableFields: [
+      { key: "username", label: "Username", type: "text" },
+      { key: "email", label: "Email", type: "text" },
+      { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" },
+      { key: "is_admin", label: "Admin Access", type: "checkbox", trueLabel: "Admin", falseLabel: "Standard" },
+      { key: "created_at", label: "Created", type: "datetime" }
     ]
   },
   dictionary: {
@@ -22,14 +30,22 @@ const SECTION_CONFIG = {
     shortTitle: "Dictionary",
     description: "Manage English to Garo word pairs used by the translator.",
     importExportNote: "Import uses english_word and garo_word columns, with optional notes and is_active. Duplicate word pairs are allowed.",
-    columns: ["ID", "English", "Garo", "Notes", "Status", "Actions"],
+    columns: ["ID", "English", "Garo", "Notes", "Status", "Created", "Actions"],
     allowCreate: true,
+    allowEdit: true,
     empty: { english_word: "", garo_word: "", notes: "", is_active: true },
     fields: [
       { key: "english_word", label: "English", type: "text" },
       { key: "garo_word", label: "Garo", type: "text" },
       { key: "notes", label: "Notes", type: "textarea" },
       { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" }
+    ],
+    tableFields: [
+      { key: "english_word", label: "English", type: "text" },
+      { key: "garo_word", label: "Garo", type: "text" },
+      { key: "notes", label: "Notes", type: "textarea" },
+      { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" },
+      { key: "created_at", label: "Created", type: "datetime" }
     ]
   },
   lessons: {
@@ -37,8 +53,9 @@ const SECTION_CONFIG = {
     shortTitle: "Learning",
     description: "Edit the topics and summaries shown in the learning section.",
     importExportNote: "Import and export learning data with only title, topic, and explanation columns.",
-    columns: ["ID", "Title", "Topic", "Explanation", "Order", "Status", "Actions"],
+    columns: ["ID", "Title", "Topic", "Explanation", "Order", "Status", "Created", "Actions"],
     allowCreate: true,
+    allowEdit: true,
     empty: { title: "", topic: "", explanation: "", sort_order: 0, is_active: true },
     fields: [
       { key: "title", label: "Title", type: "text" },
@@ -46,6 +63,14 @@ const SECTION_CONFIG = {
       { key: "explanation", label: "Explanation", type: "textarea" },
       { key: "sort_order", label: "Order", type: "number" },
       { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" }
+    ],
+    tableFields: [
+      { key: "title", label: "Title", type: "text" },
+      { key: "topic", label: "Topic", type: "text" },
+      { key: "explanation", label: "Explanation", type: "textarea" },
+      { key: "sort_order", label: "Order", type: "number" },
+      { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" },
+      { key: "created_at", label: "Created", type: "datetime" }
     ]
   },
   g2: {
@@ -53,13 +78,35 @@ const SECTION_CONFIG = {
     shortTitle: "Chatbot",
     description: "Update the question and answer pairs used by G2.",
     importExportNote: "Import G2 data with question, answer, and optional is_active columns.",
-    columns: ["ID", "Question", "Answer", "Status", "Actions"],
+    columns: ["ID", "Question", "Answer", "Status", "Created", "Actions"],
     allowCreate: true,
+    allowEdit: true,
     empty: { question: "", answer: "", is_active: true },
     fields: [
       { key: "question", label: "Question", type: "textarea" },
       { key: "answer", label: "Answer", type: "textarea" },
       { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" }
+    ],
+    tableFields: [
+      { key: "question", label: "Question", type: "textarea" },
+      { key: "answer", label: "Answer", type: "textarea" },
+      { key: "is_active", label: "Status", type: "checkbox", trueLabel: "Active", falseLabel: "Inactive" },
+      { key: "created_at", label: "Created", type: "datetime" }
+    ]
+  },
+  feedback: {
+    title: "Feedback",
+    shortTitle: "Feedback",
+    description: "Review feedback submitted by signed-in users.",
+    columns: ["ID", "Username", "Subject", "Message", "Created", "Actions"],
+    allowCreate: false,
+    allowEdit: false,
+    fields: [],
+    tableFields: [
+      { key: "username", label: "Username", type: "text" },
+      { key: "subject", label: "Subject", type: "text" },
+      { key: "message", label: "Message", type: "textarea" },
+      { key: "created_at", label: "Created", type: "datetime" }
     ]
   }
 };
@@ -84,11 +131,13 @@ function AdminPage({ currentUser }) {
     lessons: [],
     ads: [],
     g2: [],
+    feedback: [],
     stats: {
       total_users: 0,
       total_dictionary_words: 0,
       total_learning_topics: 0,
-      total_chatbot_questions: 0
+      total_chatbot_questions: 0,
+      total_feedback_entries: 0
     }
   });
   const [editingRows, setEditingRows] = useState({});
@@ -96,7 +145,8 @@ function AdminPage({ currentUser }) {
     users: 1,
     dictionary: 1,
     lessons: 1,
-    g2: 1
+    g2: 1,
+    feedback: 1
   });
   const [createForms, setCreateForms] = useState({
     dictionary: clone(SECTION_CONFIG.dictionary.empty),
@@ -127,7 +177,8 @@ function AdminPage({ currentUser }) {
         total_users: section === "users" ? items.length : prev.stats.total_users,
         total_dictionary_words: section === "dictionary" ? items.length : prev.stats.total_dictionary_words,
         total_learning_topics: section === "lessons" ? items.length : prev.stats.total_learning_topics,
-        total_chatbot_questions: section === "g2" ? items.length : prev.stats.total_chatbot_questions
+        total_chatbot_questions: section === "g2" ? items.length : prev.stats.total_chatbot_questions,
+        total_feedback_entries: section === "feedback" ? items.length : prev.stats.total_feedback_entries
       }
     }));
     setSectionPages((prev) => ({ ...prev, [section]: 1 }));
@@ -170,14 +221,16 @@ function AdminPage({ currentUser }) {
     users: dashboard.users,
     dictionary: dashboard.dictionary,
     lessons: dashboard.lessons,
-    g2: dashboard.g2
+    g2: dashboard.g2,
+    feedback: dashboard.feedback
   };
 
   const sectionCounts = {
     users: dashboard.stats.total_users,
     dictionary: dashboard.stats.total_dictionary_words,
     lessons: dashboard.stats.total_learning_topics,
-    g2: dashboard.stats.total_chatbot_questions
+    g2: dashboard.stats.total_chatbot_questions,
+    feedback: dashboard.stats.total_feedback_entries
   };
 
   const startEditing = (section, record) => {
@@ -265,7 +318,9 @@ function AdminPage({ currentUser }) {
             total_learning_topics:
               section === "lessons" ? prev.stats.total_learning_topics - 1 : prev.stats.total_learning_topics,
             total_chatbot_questions:
-              section === "g2" ? prev.stats.total_chatbot_questions - 1 : prev.stats.total_chatbot_questions
+              section === "g2" ? prev.stats.total_chatbot_questions - 1 : prev.stats.total_chatbot_questions,
+            total_feedback_entries:
+              section === "feedback" ? prev.stats.total_feedback_entries - 1 : prev.stats.total_feedback_entries
           }
         };
       });
@@ -321,7 +376,9 @@ function AdminPage({ currentUser }) {
           total_learning_topics:
             section === "lessons" ? prev.stats.total_learning_topics + 1 : prev.stats.total_learning_topics,
           total_chatbot_questions:
-            section === "g2" ? prev.stats.total_chatbot_questions + 1 : prev.stats.total_chatbot_questions
+            section === "g2" ? prev.stats.total_chatbot_questions + 1 : prev.stats.total_chatbot_questions,
+          total_feedback_entries:
+            section === "feedback" ? prev.stats.total_feedback_entries + 1 : prev.stats.total_feedback_entries
         }
       }));
       setSectionPages((prev) => ({ ...prev, [section]: 1 }));
@@ -338,6 +395,10 @@ function AdminPage({ currentUser }) {
   };
 
   const renderValue = (field, value) => {
+    if (field.type === "datetime") {
+      const text = String(value ?? "").trim();
+      return text ? new Date(text).toLocaleString() : "-";
+    }
     if (field.type === "checkbox") {
       return value ? field.trueLabel : field.falseLabel;
     }
@@ -622,7 +683,11 @@ function AdminPage({ currentUser }) {
               </button>
             </div>
           ) : (
-            <p className="admin-empty">Create new users from the app sign-up flow.</p>
+            <p className="admin-empty">
+              {activeSection === "feedback"
+                ? "Feedback entries are created from the app feedback page."
+                : "Create new users from the app sign-up flow."}
+            </p>
           )}
 
           <div className="admin-table-wrap">
@@ -641,16 +706,16 @@ function AdminPage({ currentUser }) {
                   return (
                     <tr key={record.id}>
                       <td>{record.id}</td>
-                      {SECTION_CONFIG[activeSection].fields.map((field) => (
+                      {(SECTION_CONFIG[activeSection].tableFields || SECTION_CONFIG[activeSection].fields).map((field) => (
                         <td key={field.key}>
-                          {editingRecord
+                          {editingRecord && field.type !== "datetime"
                             ? renderEditor(activeSection, record.id, field, currentRecord[field.key])
                             : renderValue(field, currentRecord[field.key])}
                         </td>
                       ))}
                       <td>
                         <div className="admin-table-actions">
-                          {!editingRecord ? (
+                          {SECTION_CONFIG[activeSection].allowEdit !== false && !editingRecord ? (
                             <button
                               className="card-link admin-table-btn"
                               type="button"
@@ -658,7 +723,8 @@ function AdminPage({ currentUser }) {
                             >
                               Edit
                             </button>
-                          ) : (
+                          ) : null}
+                          {SECTION_CONFIG[activeSection].allowEdit !== false && editingRecord ? (
                             <>
                               <button
                                 className="card-link admin-table-btn"
@@ -676,7 +742,7 @@ function AdminPage({ currentUser }) {
                                 Cancel
                               </button>
                             </>
-                          )}
+                          ) : null}
                           <button
                             className="admin-danger-btn admin-table-btn"
                             type="button"
