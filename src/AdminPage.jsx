@@ -504,7 +504,9 @@ function AdminPage({ currentUser }) {
       {!loading && activeSection ? (
         <section className="admin-manager-page">
           {(() => {
-            const allItems = sectionDataMap[activeSection];
+            const allItems = [...sectionDataMap[activeSection]].sort(
+              (first, second) => Number(second.id || 0) - Number(first.id || 0)
+            );
             const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
             const currentPage = Math.min(sectionPages[activeSection] || 1, totalPages);
             const pageStart = (currentPage - 1) * PAGE_SIZE;
