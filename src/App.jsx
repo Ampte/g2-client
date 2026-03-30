@@ -570,7 +570,7 @@ function App() {
             <div className="home-hero-grid">
               <div className="home-hero-copy">
                 <h1>Translate and Learn Garo Language</h1>
-                <p>Translate and learn Garo with simple tools designed for everyday practice on mobile and desktop.</p>
+                <p>Preserving language through technology and education.</p>
                 <section className="home-ad-section" aria-label="Home image">
                   <div className="home-ad-image-frame">
                     <img src={currentHomeAd.image_url} alt={currentHomeAd.description || "Garo2 home ad"} className="home-ad-image" />
